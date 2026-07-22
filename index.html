@@ -1216,7 +1216,7 @@ function escapeHtml(str) {
       el.gameArea.classList.remove("hidden");
       buildTargetGrid();
       updateMeta();
-      renderScoreboard();
+      renderScorecard();
       setAnnouncement(`Hole ${state.currentHole}: ${state.players[0].name} throws for ${state.currentHole}. Best dart counts.`, "");
     }
 
@@ -1324,7 +1324,7 @@ function escapeHtml(str) {
       }
 
       updateMeta();
-      renderScoreboard();
+      renderScorebcard();
       setAnnouncement(`Hole ${state.currentHole}: ${state.players[state.currentPlayer].name} throws for ${state.currentHole}.`, "");
     }
 
