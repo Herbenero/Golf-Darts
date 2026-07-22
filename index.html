@@ -247,7 +247,7 @@
     /* Game Controls View */
     .meta-strip {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 12px;
       margin-bottom: 20px;
     }
@@ -281,7 +281,7 @@
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 12px;
-      margin-bottom: 20px;
+      margin-bottom: 24px;
     }
 
     .dart-slot {
@@ -297,56 +297,54 @@
     .dart-slot .n { display: block; color: var(--text-dim); font-size: 0.7rem; text-transform: uppercase; font-weight: 700; }
     .dart-slot .v { font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; color: var(--accent-green); }
 
-    .mult-row {
+    .score-buttons-grid {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 10px;
-      margin-bottom: 20px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-bottom: 24px;
     }
 
-    .mult-btn {
-      padding: 14px 8px;
+    .score-btn {
+      padding: 20px 16px;
       border-radius: var(--radius-md);
-      background: rgba(255, 255, 255, 0.03);
+      background: rgba(255, 255, 255, 0.04);
       border: 1px solid var(--bg-card-border);
       color: var(--text-main);
-      font-size: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .score-btn .btn-title {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
       font-weight: 700;
     }
 
-    .mult-btn.active {
-      background: var(--accent-green);
-      color: #022c22;
+    .score-btn .btn-sub {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .score-btn:hover {
+      background: rgba(34, 197, 94, 0.12);
       border-color: var(--accent-green);
-      box-shadow: 0 0 16px rgba(34, 197, 94, 0.3);
     }
 
-    .target-grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 10px;
-      margin-bottom: 20px;
+    .score-btn.btn-miss {
+      grid-column: span 2;
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
     }
 
-    .target-btn {
-      height: 60px;
-      border-radius: var(--radius-md);
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid var(--bg-card-border);
-      font-family: var(--font-display);
-      font-size: 1.4rem;
-      color: var(--text-main);
+    .score-btn.btn-miss .btn-sub {
+      color: #f87171;
     }
 
-    .target-btn:hover {
-      border-color: var(--accent-green);
-      background: rgba(34, 197, 94, 0.1);
-    }
-
-    .target-btn.current-hole {
-      border: 2px solid var(--accent-gold);
-      background: rgba(245, 158, 11, 0.15);
-      color: var(--accent-gold);
+    .score-btn.btn-miss:hover {
+      background: rgba(239, 68, 68, 0.2);
     }
 
     .action-row {
@@ -441,7 +439,7 @@
     /* Responsive */
     @media (max-width: 1024px) {
       .game-layout, .setup-layout { grid-template-columns: 1fr; }
-      .meta-strip { grid-template-columns: repeat(3, 1fr); }
+      .meta-strip { grid-template-columns: repeat(2, 1fr); }
     }
   </style>
 </head>
@@ -500,7 +498,7 @@
               <li><strong>Triple:</strong> 2 pts (Eagle)</li>
               <li><strong>Inner Single:</strong> 3 pts (Birdie)</li>
               <li><strong>Outer Single:</strong> 4 pts (Par)</li>
-              <li><strong>Miss/Wrong Target:</strong> 5 pts (Bogey)</li>
+              <li><strong>Miss / Wrong Segment:</strong> 5 pts (Bogey)</li>
             </ul>
           </div>
           <div id="historyPanel">
@@ -526,16 +524,12 @@
               <span class="v" id="modeLabel">9 Holes</span>
             </div>
             <div class="meta-box">
-              <span class="k">Hole</span>
+              <span class="k">Target Hole</span>
               <span class="v" id="holeLabel" style="color:var(--accent-gold);">1</span>
             </div>
             <div class="meta-box">
               <span class="k">Dart</span>
               <span class="v" id="dartLabel">1 / 3</span>
-            </div>
-            <div class="meta-box">
-              <span class="k">Type</span>
-              <span class="v" id="multLabel">Outer</span>
             </div>
           </div>
 
@@ -545,15 +539,29 @@
             <div class="dart-slot"><div><span class="n">Dart 3</span><span class="v" id="dart3View">—</span></div></div>
           </div>
 
-          <div class="mult-row" role="group">
-            <button class="mult-btn active" data-shot="outer">Outer Single</button>
-            <button class="mult-btn" data-shot="inner">Inner Single</button>
-            <button class="mult-btn" data-shot="double">Double</button>
-            <button class="mult-btn" data-shot="triple">Triple</button>
-            <button class="mult-btn btn-warn" id="missBtn">Miss</button>
+          <!-- Direct Segment Score Input Buttons -->
+          <div class="score-buttons-grid">
+            <button class="score-btn" data-shot="double">
+              <span class="btn-title">Double</span>
+              <span class="btn-sub">1 Point (Hole-in-One)</span>
+            </button>
+            <button class="score-btn" data-shot="triple">
+              <span class="btn-title">Triple</span>
+              <span class="btn-sub">2 Points (Eagle)</span>
+            </button>
+            <button class="score-btn" data-shot="inner">
+              <span class="btn-title">Inner Single</span>
+              <span class="btn-sub">3 Points (Birdie)</span>
+            </button>
+            <button class="score-btn" data-shot="outer">
+              <span class="btn-title">Outer Single</span>
+              <span class="btn-sub">4 Points (Par)</span>
+            </button>
+            <button class="score-btn btn-miss" data-shot="miss">
+              <span class="btn-title">Miss / Wrong Segment</span>
+              <span class="btn-sub">5 Points (Bogey)</span>
+            </button>
           </div>
-
-          <div class="target-grid" id="targetGrid"></div>
 
           <div class="action-row">
             <button class="btn" id="undoBtn">Undo</button>
@@ -596,11 +604,9 @@
       currentPlayer: 0,
       currentHole: 1,
       currentDart: 1,
-      selectedShot: "outer",
       dartsThisTurn: [],
       started: false,
-      gameOver: false,
-      historyStack: []
+      gameOver: false
     };
 
     const el = {
@@ -615,12 +621,9 @@
       modeLabel: document.getElementById("modeLabel"),
       holeLabel: document.getElementById("holeLabel"),
       dartLabel: document.getElementById("dartLabel"),
-      multLabel: document.getElementById("multLabel"),
       dart1View: document.getElementById("dart1View"),
       dart2View: document.getElementById("dart2View"),
       dart3View: document.getElementById("dart3View"),
-      targetGrid: document.getElementById("targetGrid"),
-      missBtn: document.getElementById("missBtn"),
       undoBtn: document.getElementById("undoBtn"),
       finishHoleBtn: document.getElementById("finishHoleBtn"),
       newGameBtn: document.getElementById("newGameBtn"),
@@ -628,14 +631,13 @@
       verticalScoreHead: document.getElementById("verticalScoreHead"),
       verticalScoreBody: document.getElementById("verticalScoreBody"),
       historyList: document.getElementById("historyList"),
-      shotButtons: () => [...document.querySelectorAll("[data-shot]")]
+      scoreButtons: () => [...document.querySelectorAll("[data-shot]")]
     };
 
     function init() {
       el.matchDate.value = new Date().toISOString().slice(0, 10);
       addPlayerField("Player 1");
       addPlayerField("Player 2");
-      buildTargetGrid();
       bindEvents();
       renderHistory();
     }
@@ -667,32 +669,16 @@
       });
     }
 
-    function buildTargetGrid() {
-      el.targetGrid.innerHTML = "";
-      for (let i = 1; i <= 20; i++) {
-        const btn = document.createElement("button");
-        btn.className = "target-btn";
-        btn.textContent = i;
-        btn.dataset.target = i;
-        btn.addEventListener("click", () => recordThrow(i));
-        el.targetGrid.appendChild(btn);
-      }
-    }
-
     function bindEvents() {
       el.addPlayerBtn.addEventListener("click", () => addPlayerField());
       el.startGameBtn.addEventListener("click", startGame);
       el.newGameBtn.addEventListener("click", resetToSetup);
-      el.missBtn.addEventListener("click", () => recordThrow("MISS"));
       el.finishHoleBtn.addEventListener("click", endTurn);
       el.undoBtn.addEventListener("click", undoLast);
 
-      el.shotButtons().forEach(btn => {
+      el.scoreButtons().forEach(btn => {
         btn.addEventListener("click", () => {
-          el.shotButtons().forEach(b => b.classList.remove("active"));
-          btn.classList.add("active");
-          state.selectedShot = btn.dataset.shot;
-          el.multLabel.textContent = btn.textContent;
+          recordThrow(btn.dataset.shot);
         });
       });
     }
@@ -720,14 +706,11 @@
       renderScorecard();
     }
 
-    function recordThrow(target) {
+    function recordThrow(shotType) {
       if (state.gameOver || state.currentDart > 3) return;
 
-      const isHit = target === state.currentHole;
-      const shotType = isHit ? state.selectedShot : "miss";
       const score = SHOT_POINTS[shotType];
-
-      state.dartsThisTurn.push({ target, shotType, score });
+      state.dartsThisTurn.push({ shotType, score });
       state.currentDart++;
 
       updateDisplay();
@@ -740,7 +723,7 @@
     function endTurn() {
       if (state.dartsThisTurn.length === 0) {
         // Auto miss if ended early without throws
-        state.dartsThisTurn.push({ target: "MISS", shotType: "miss", score: 5 });
+        state.dartsThisTurn.push({ shotType: "miss", score: 5 });
       }
 
       // Best dart score (lowest number)
@@ -776,11 +759,6 @@
       el.modeLabel.textContent = `${state.totalHoles} Holes`;
       el.holeLabel.textContent = state.currentHole;
       el.dartLabel.textContent = `${Math.min(state.currentDart, 3)} / 3`;
-
-      // Highlight current hole button
-      [...el.targetGrid.children].forEach(btn => {
-        btn.classList.toggle("current-hole", parseInt(btn.dataset.target, 10) === state.currentHole);
-      });
 
       // Update dart tracking indicators
       el.dart1View.textContent = state.dartsThisTurn[0] ? state.dartsThisTurn[0].score : "—";
