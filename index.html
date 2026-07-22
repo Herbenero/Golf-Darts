@@ -1140,7 +1140,16 @@ function escapeHtml(str) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
-    function renderScorecard() {
+    // Safe string escaping helper
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function renderScorecard() {
   if (!el.scoreHead || !el.scoreBody) return;
 
   // 1. Build Header Row: [ "Hole", Player 1, Player 2, ... ]
@@ -1171,7 +1180,7 @@ function escapeHtml(str) {
     bodyHtml += `</tr>`;
   }
 
-  // 3. Build Total Row
+  // 3. Build Total Row at the bottom
   bodyHtml += `<tr style="border-top: 2px solid var(--line);">`;
   bodyHtml += `<td class="name" style="font-weight: 800;">TOTAL</td>`;
   state.players.forEach(player => {
