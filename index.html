@@ -1133,11 +1133,17 @@ td.total {
 
       el.undoBtn.disabled = !state.historyStack.length;
     }
-
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
     function renderScorecard() {
   if (!el.scoreHead || !el.scoreBody) return;
 
-  // 1. Build Header: [ "Hole", Player 1, Player 2, ... ]
+  // 1. Build Header Row: [ "Hole", Player 1, Player 2, ... ]
   let headHtml = `<tr><th>Hole</th>`;
   state.players.forEach((player, idx) => {
     const isActive = state.started && idx === state.currentPlayer && !state.gameOver;
@@ -1165,7 +1171,7 @@ td.total {
     bodyHtml += `</tr>`;
   }
 
-  // 3. Build Total Row at the bottom
+  // 3. Build Total Row
   bodyHtml += `<tr style="border-top: 2px solid var(--line);">`;
   bodyHtml += `<td class="name" style="font-weight: 800;">TOTAL</td>`;
   state.players.forEach(player => {
@@ -1175,7 +1181,6 @@ td.total {
 
   el.scoreBody.innerHTML = bodyHtml;
 }
-
 // Helper utility for safe player names rendering
 function escapeHtml(str) {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
