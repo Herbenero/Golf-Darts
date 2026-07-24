@@ -595,262 +595,279 @@
   </div>
 
   <script>
-    const STORAGE_KEYS = { history: "golf_darts_history_v1" };
-    const SHOT_POINTS = { double: 1, triple: 2, inner: 3, outer: 4, miss: 5 };
+  const STORAGE_KEYS = { history: "golf_darts_history_v1" };
+  const SHOT_POINTS = { double: 1, triple: 2, inner: 3, outer: 4, miss: 5 };
 
-    const state = {
-      players: [],
-      totalHoles: 9,
-      currentPlayer: 0,
-      currentHole: 1,
-      currentDart: 1,
-      dartsThisTurn: [],
-      started: false,
-      gameOver: false
-    };
+  // Global State (includes historyStack)
+  const state = {
+    players: [],
+    totalHoles: 9,
+    currentPlayer: 0,
+    currentHole: 1,
+    currentDart: 1,
+    dartsThisTurn: [],
+    started: false,
+    gameOver: false,
+    historyStack: [] // Tracks snapshots for Undo
+  };
 
-    const el = {
-      playerList: document.getElementById("playerList"),
-      addPlayerBtn: document.getElementById("addPlayerBtn"),
-      startGameBtn: document.getElementById("startGameBtn"),
-      gameMode: document.getElementById("gameMode"),
-      matchDate: document.getElementById("matchDate"),
-      setupPanel: document.getElementById("setupPanel"),
-      gameArea: document.getElementById("gameArea"),
-      currentPlayerLabel: document.getElementById("currentPlayerLabel"),
-      modeLabel: document.getElementById("modeLabel"),
-      holeLabel: document.getElementById("holeLabel"),
-      dartLabel: document.getElementById("dartLabel"),
-      dart1View: document.getElementById("dart1View"),
-      dart2View: document.getElementById("dart2View"),
-      dart3View: document.getElementById("dart3View"),
-      undoBtn: document.getElementById("undoBtn"),
-      finishHoleBtn: document.getElementById("finishHoleBtn"),
-      newGameBtn: document.getElementById("newGameBtn"),
-      announcement: document.getElementById("announcement"),
-      verticalScoreHead: document.getElementById("verticalScoreHead"),
-      verticalScoreBody: document.getElementById("verticalScoreBody"),
-      historyList: document.getElementById("historyList"),
-      scoreButtons: () => [...document.querySelectorAll("[data-shot]")]
-    };
+  const el = {
+    playerList: document.getElementById("playerList"),
+    addPlayerBtn: document.getElementById("addPlayerBtn"),
+    startGameBtn: document.getElementById("startGameBtn"),
+    gameMode: document.getElementById("gameMode"),
+    matchDate: document.getElementById("matchDate"),
+    setupPanel: document.getElementById("setupPanel"),
+    gameArea: document.getElementById("gameArea"),
+    currentPlayerLabel: document.getElementById("currentPlayerLabel"),
+    modeLabel: document.getElementById("modeLabel"),
+    holeLabel: document.getElementById("holeLabel"),
+    dartLabel: document.getElementById("dartLabel"),
+    dart1View: document.getElementById("dart1View"),
+    dart2View: document.getElementById("dart2View"),
+    dart3View: document.getElementById("dart3View"),
+    undoBtn: document.getElementById("undoBtn"),
+    finishHoleBtn: document.getElementById("finishHoleBtn"),
+    newGameBtn: document.getElementById("newGameBtn"),
+    announcement: document.getElementById("announcement"),
+    verticalScoreHead: document.getElementById("verticalScoreHead"),
+    verticalScoreBody: document.getElementById("verticalScoreBody"),
+    historyList: document.getElementById("historyList"),
+    scoreButtons: () => [...document.querySelectorAll("[data-shot]")]
+  };
 
-    function init() {
-      el.matchDate.value = new Date().toISOString().slice(0, 10);
-      addPlayerField("Player 1");
-      addPlayerField("Player 2");
-      bindEvents();
-      renderHistory();
-    }
+  function init() {
+    el.matchDate.value = new Date().toISOString().slice(0, 10);
+    addPlayerField("Player 1");
+    addPlayerField("Player 2");
+    bindEvents();
+    renderHistory();
+  }
 
-    function addPlayerField(value = "") {
-      const count = el.playerList.querySelectorAll(".player-row").length + 1;
-      const row = document.createElement("div");
-      row.className = "player-row";
-      row.innerHTML = `
-        <div class="field">
-          <label>Player ${count}</label>
-          <input type="text" maxlength="20" placeholder="Name" value="${value}">
-        </div>
-        <button class="remove-player" type="button">×</button>
-      `;
-      row.querySelector(".remove-player").addEventListener("click", () => {
-        if (el.playerList.querySelectorAll(".player-row").length <= 1) return;
-        row.remove();
-        refreshPlayerLabels();
-      });
-      el.playerList.appendChild(row);
+  function addPlayerField(value = "") {
+    const count = el.playerList.querySelectorAll(".player-row").length + 1;
+    const row = document.createElement("div");
+    row.className = "player-row";
+    row.innerHTML = `
+      <div class="field">
+        <label>Player ${count}</label>
+        <input type="text" maxlength="20" placeholder="Name" value="${value}">
+      </div>
+      <button class="remove-player" type="button">×</button>
+    `;
+    row.querySelector(".remove-player").addEventListener("click", () => {
+      if (el.playerList.querySelectorAll(".player-row").length <= 1) return;
+      row.remove();
       refreshPlayerLabels();
-    }
+    });
+    el.playerList.appendChild(row);
+    refreshPlayerLabels();
+  }
 
-    function refreshPlayerLabels() {
-      const rows = [...el.playerList.querySelectorAll(".player-row")];
-      rows.forEach((row, idx) => {
-        row.querySelector("label").textContent = `Player ${idx + 1}`;
+  function refreshPlayerLabels() {
+    const rows = [...el.playerList.querySelectorAll(".player-row")];
+    rows.forEach((row, idx) => {
+      row.querySelector("label").textContent = `Player ${idx + 1}`;
+    });
+  }
+
+  function bindEvents() {
+    el.addPlayerBtn.addEventListener("click", () => addPlayerField());
+    el.startGameBtn.addEventListener("click", startGame);
+    el.newGameBtn.addEventListener("click", resetToSetup);
+    el.finishHoleBtn.addEventListener("click", endTurn);
+    el.undoBtn.addEventListener("click", undoLast);
+    el.scoreButtons().forEach(btn => {
+      btn.addEventListener("click", () => {
+        recordThrow(btn.dataset.shot);
       });
+    });
+  }
+
+  function startGame() {
+    const names = [...el.playerList.querySelectorAll("input")]
+      .map(i => i.value.trim())
+      .filter(Boolean);
+    if (names.length === 0) return;
+
+    state.players = names.map(name => ({ name, scores: Array(18).fill(null), total: 0 }));
+    state.totalHoles = parseInt(el.gameMode.value, 10);
+    state.currentPlayer = 0;
+    state.currentHole = 1;
+    state.currentDart = 1;
+    state.dartsThisTurn = [];
+    state.historyStack = [];
+    state.started = true;
+    state.gameOver = false;
+
+    el.setupPanel.classList.add("hidden");
+    el.gameArea.classList.remove("hidden");
+    updateDisplay();
+    renderScorecard();
+  }
+
+  // --- RECORD THROW (Saves state snapshot before modifying) ---
+  function recordThrow(shotType) {
+    if (state.gameOver || state.currentDart > 3) return;
+
+    // Save history snapshot before modifying state
+    pushStateToHistory();
+
+    const score = SHOT_POINTS[shotType];
+    state.dartsThisTurn.push({ shotType, score });
+    state.currentDart++;
+    updateDisplay();
+
+    if (state.currentDart > 3) {
+      endTurn();
+    }
+  }
+
+  // Helper function to serialize current state into stack
+  function pushStateToHistory() {
+    state.historyStack.push(JSON.stringify({
+      players: state.players,
+      currentPlayer: state.currentPlayer,
+      currentHole: state.currentHole,
+      currentDart: state.currentDart,
+      dartsThisTurn: state.dartsThisTurn,
+      gameOver: state.gameOver
+    }));
+  }
+
+  function endTurn() {
+    if (state.dartsThisTurn.length === 0) {
+      state.dartsThisTurn.push({ shotType: "miss", score: 5 });
     }
 
-    function bindEvents() {
-      el.addPlayerBtn.addEventListener("click", () => addPlayerField());
-      el.startGameBtn.addEventListener("click", startGame);
-      el.newGameBtn.addEventListener("click", resetToSetup);
-      el.finishHoleBtn.addEventListener("click", endTurn);
-      el.undoBtn.addEventListener("click", undoLast);
+    const bestScore = Math.min(...state.dartsThisTurn.map(d => d.score));
+    const player = state.players[state.currentPlayer];
+    player.scores[state.currentHole - 1] = bestScore;
+    player.total = player.scores.reduce((a, b) => a + (b || 0), 0);
 
-      el.scoreButtons().forEach(btn => {
-        btn.addEventListener("click", () => {
-          recordThrow(btn.dataset.shot);
-        });
-      });
-    }
+    state.dartsThisTurn = [];
+    state.currentDart = 1;
+    state.currentPlayer++;
 
-    function startGame() {
-      const names = [...el.playerList.querySelectorAll("input")]
-        .map(i => i.value.trim())
-        .filter(Boolean);
-
-      if (names.length === 0) return;
-
-      state.players = names.map(name => ({ name, scores: Array(18).fill(null), total: 0 }));
-      state.totalHoles = parseInt(el.gameMode.value, 10);
+    if (state.currentPlayer >= state.players.length) {
       state.currentPlayer = 0;
-      state.currentHole = 1;
-      state.currentDart = 1;
-      state.dartsThisTurn = [];
-      state.started = true;
-      state.gameOver = false;
-
-      el.setupPanel.classList.add("hidden");
-      el.gameArea.classList.remove("hidden");
-
-      updateDisplay();
-      renderScorecard();
+      state.currentHole++;
     }
 
-    function recordThrow(shotType) {
-      if (state.gameOver || state.currentDart > 3) return;
-
-      const score = SHOT_POINTS[shotType];
-      state.dartsThisTurn.push({ shotType, score });
-      state.currentDart++;
-
-      updateDisplay();
-
-      if (state.currentDart > 3) {
-        endTurn();
-      }
+    if (state.currentHole > state.totalHoles) {
+      state.gameOver = true;
+      announceWinner();
     }
 
-    function endTurn() {
-      if (state.dartsThisTurn.length === 0) {
-        // Auto miss if ended early without throws
-        state.dartsThisTurn.push({ shotType: "miss", score: 5 });
-      }
+    updateDisplay();
+    renderScorecard();
+  }
 
-      // Best dart score (lowest number)
-      const bestScore = Math.min(...state.dartsThisTurn.map(d => d.score));
-      const player = state.players[state.currentPlayer];
-      player.scores[state.currentHole - 1] = bestScore;
-      player.total = player.scores.reduce((a, b) => a + (b || 0), 0);
-
-      // Advance Player / Hole
-      state.dartsThisTurn = [];
-      state.currentDart = 1;
-      state.currentPlayer++;
-
-      if (state.currentPlayer >= state.players.length) {
-        state.currentPlayer = 0;
-        state.currentHole++;
-      }
-
-      if (state.currentHole > state.totalHoles) {
-        state.gameOver = true;
-        announceWinner();
-      }
-
-      updateDisplay();
-      renderScorecard();
+  // --- UNDO LAST DART FUNCTION ---
+  function undoLast() {
+    if (!state.historyStack || state.historyStack.length === 0) {
+      el.announcement.textContent = "Nothing to undo!";
+      return;
     }
 
-    function updateDisplay() {
-      if (state.gameOver) return;
+    // Restore previous state from snapshot
+    const previousState = JSON.parse(state.historyStack.pop());
 
-      const p = state.players[state.currentPlayer];
-      el.currentPlayerLabel.textContent = p.name;
-      el.modeLabel.textContent = `${state.totalHoles} Holes`;
-      el.holeLabel.textContent = state.currentHole;
-      el.dartLabel.textContent = `${Math.min(state.currentDart, 3)} / 3`;
+    state.players = previousState.players;
+    state.currentPlayer = previousState.currentPlayer;
+    state.currentHole = previousState.currentHole;
+    state.currentDart = previousState.currentDart;
+    state.dartsThisTurn = previousState.dartsThisTurn;
+    state.gameOver = previousState.gameOver;
 
-      // Update dart tracking indicators
-      el.dart1View.textContent = state.dartsThisTurn[0] ? state.dartsThisTurn[0].score : "—";
-      el.dart2View.textContent = state.dartsThisTurn[1] ? state.dartsThisTurn[1].score : "—";
-      el.dart3View.textContent = state.dartsThisTurn[2] ? state.dartsThisTurn[2].score : "—";
-    }
+    el.announcement.textContent = "Last dart undone.";
 
-    /* Renders Vertical Scorecard */
-    function renderScorecard() {
-      // Build Headers (Hole # + Player Names)
-      let headHtml = `<th class="hole-col">Hole</th>`;
-      state.players.forEach((p, idx) => {
-        const isActive = idx === state.currentPlayer && !state.gameOver;
-        headHtml += `<th class="${isActive ? 'active-player' : ''}">${p.name}</th>`;
-      });
-      el.verticalScoreHead.innerHTML = headHtml;
+    updateDisplay();
+    renderScorecard();
+  }
 
-      // Build Rows for each Hole
-      let bodyHtml = "";
-      for (let h = 1; h <= state.totalHoles; h++) {
-        const isCurrentHole = h === state.currentHole && !state.gameOver;
-        bodyHtml += `<tr class="${isCurrentHole ? 'cell-current-hole' : ''}">`;
-        bodyHtml += `<td class="hole-col">${h}</td>`;
+  function updateDisplay() {
+    if (state.gameOver) return;
+    const p = state.players[state.currentPlayer];
+    el.currentPlayerLabel.textContent = p.name;
+    el.modeLabel.textContent = `${state.totalHoles} Holes`;
+    el.holeLabel.textContent = state.currentHole;
+    el.dartLabel.textContent = `${Math.min(state.currentDart, 3)} / 3`;
 
-        state.players.forEach(p => {
-          const score = p.scores[h - 1];
-          if (score !== null) {
-            bodyHtml += `<td><span class="score-badge score-${score}">${score}</span></td>`;
-          } else {
-            bodyHtml += `<td style="opacity:0.2;">—</td>`;
-          }
-        });
-        bodyHtml += `</tr>`;
-      }
+    el.dart1View.textContent = state.dartsThisTurn[0] ? state.dartsThisTurn[0].score : "—";
+    el.dart2View.textContent = state.dartsThisTurn[1] ? state.dartsThisTurn[1].score : "—";
+    el.dart3View.textContent = state.dartsThisTurn[2] ? state.dartsThisTurn[2].score : "—";
+  }
 
-      // Append Total Row at Bottom
-      bodyHtml += `<tr class="total-row"><td class="hole-col">TOT</td>`;
+  function renderScorecard() {
+    let headHtml = `<th class="hole-col">Hole</th>`;
+    state.players.forEach((p, idx) => {
+      const isActive = idx === state.currentPlayer && !state.gameOver;
+      headHtml += `<th class="${isActive ? 'active-player' : ''}">${p.name}</th>`;
+    });
+    el.verticalScoreHead.innerHTML = headHtml;
+
+    let bodyHtml = "";
+    for (let h = 1; h <= state.totalHoles; h++) {
+      const isCurrentHole = h === state.currentHole && !state.gameOver;
+      bodyHtml += `<tr class="${isCurrentHole ? 'cell-current-hole' : ''}">`;
+      bodyHtml += `<td class="hole-col">${h}</td>`;
       state.players.forEach(p => {
-        bodyHtml += `<td>${p.total}</td>`;
+        const score = p.scores[h - 1];
+        if (score !== null) {
+          bodyHtml += `<td><span class="score-badge score-${score}">${score}</span></td>`;
+        } else {
+          bodyHtml += `<td style="opacity:0.2;">—</td>`;
+        }
       });
       bodyHtml += `</tr>`;
-
-      el.verticalScoreBody.innerHTML = bodyHtml;
     }
 
-    function announceWinner() {
-      const sorted = [...state.players].sort((a, b) => a.total - b.total);
-      const winner = sorted[0];
-      el.announcement.textContent = `🎉 Game Over! ${winner.name} wins with a score of ${winner.total}!`;
-      saveHistory(winner);
-    }
+    bodyHtml += `<tr class="total-row"><td class="hole-col">TOT</td>`;
+    state.players.forEach(p => {
+      bodyHtml += `<td>${p.total}</td>`;
+    });
+    bodyHtml += `</tr>`;
+    el.verticalScoreBody.innerHTML = bodyHtml;
+  }
 
-    function saveHistory(winner) {
-      const history = JSON.parse(localStorage.getItem(STORAGE_KEYS.history) || "[]");
-      history.unshift({
-        date: el.matchDate.value,
-        winner: winner.name,
-        score: winner.total,
-        mode: `${state.totalHoles} Holes`
-      });
-      localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(history.slice(0, 10)));
-      renderHistory();
-    }
+  function announceWinner() {
+    const sorted = [...state.players].sort((a, b) => a.total - b.total);
+    const winner = sorted[0];
+    el.announcement.textContent = `🎉 Game Over! ${winner.name} wins with a score of ${winner.total}!`;
+    saveHistory(winner);
+  }
 
-    function renderHistory() {
-      const history = JSON.parse(localStorage.getItem(STORAGE_KEYS.history) || "[]");
-      el.historyList.innerHTML = history.length ? "" : "<div style='color:var(--text-dim); font-size:0.85rem;'>No past games.</div>";
-      history.forEach(item => {
-        const div = document.createElement("div");
-        div.style.cssText = "padding:10px; background:rgba(0,0,0,0.2); border-radius:8px; font-size:0.85rem; display:flex; justify-content:space-between;";
-        div.innerHTML = `<span><strong>${item.winner}</strong> (${item.score})</span><span style="color:var(--text-muted);">${item.date}</span>`;
-        el.historyList.appendChild(div);
-      });
-    }
+  function saveHistory(winner) {
+    const history = JSON.parse(localStorage.getItem(STORAGE_KEYS.history) || "[]");
+    history.unshift({
+      date: el.matchDate.value,
+      winner: winner.name,
+      score: winner.total,
+      mode: `${state.totalHoles} Holes`
+    });
+    localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(history.slice(0, 10)));
+    renderHistory();
+  }
 
-    function undoLast() {
-      if (state.dartsThisTurn.length > 0) {
-        state.dartsThisTurn.pop();
-        state.currentDart--;
-        updateDisplay();
-      }
-    }
+  function renderHistory() {
+    const history = JSON.parse(localStorage.getItem(STORAGE_KEYS.history) || "[]");
+    el.historyList.innerHTML = history.length ? "" : "<div style='color:var(--text-dim); font-size:0.85rem;'>No past games.</div>";
+    history.forEach(item => {
+      const div = document.createElement("div");
+      div.style.cssText = "padding:10px; background:rgba(0,0,0,0.2); border-radius:8px; font-size:0.85rem; display:flex; justify-content:space-between;";
+      div.innerHTML = `<span><strong>${item.winner}</strong> (${item.score})</span><span style="color:var(--text-muted);">${item.date}</span>`;
+      el.historyList.appendChild(div);
+    });
+  }
 
-    function resetToSetup() {
-      el.gameArea.classList.add("hidden");
-      el.setupPanel.classList.remove("hidden");
-    }
+  function resetToSetup() {
+    el.gameArea.classList.add("hidden");
+    el.setupPanel.classList.remove("hidden");
+  }
 
-    // Alias to guard against missing function errors
-    const renderScoreboard = renderScorecard;
-
-    init();
-  </script>
+  const renderScoreboard = renderScorecard;
+  init();
+</script>
 </body>
 </html>
