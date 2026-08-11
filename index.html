@@ -605,7 +605,19 @@
       bodyHtml += `</tr>`;
       el.verticalScoreBody.innerHTML = bodyHtml;
     }
+function endGame() {
+  // 1. Calculate final scores (Lowest score wins in Golf Darts)
+  const sorted = [...state.players].sort((a, b) => a.total - b.total);
+  const summaryText = sorted.map(p => `${p.name} (${p.total})`).join(', ');
 
+  // 2. Display local winner UI
+  if (typeof renderWinnerModal === "function") {
+    renderWinnerModal(sorted[0]);
+  }
+
+  // 3. Trigger Hellcastle sync
+  syncGameToHellcastle("Golf Darts", summaryText);
+}
     function announceWinner() {
       const sorted = [...state.players].sort((a, b) => a.total - b.total);
       const winner = sorted[0];
@@ -615,9 +627,7 @@
  
   showWinnerModal(sortedPlayers[0].name);
 
-  // 2. Insert the call here
-  syncGameToHellcastle("Golf Darts", summaryText);
-}
+ }
     }
 
     function saveHistory(winner) {
@@ -649,11 +659,11 @@
     }
 
     init();
-    function syncGameToHellcastle(gameName, resultSummary) {
+   function syncGameToHellcastle(gameName, resultSummary) {
   const payload = {
     date: new Date().toISOString().split('T')[0],
     game: gameName,
-    summary: resultSummary
+    summary: resultSummary // Use parameter name
   };
 
   fetch("https://script.google.com/macros/s/AKfycbwGPOZhC-PRsuwt-wZ70QRxnZLExtnVROtRpJx8jLqniyM79DxMVFsFkKqVHHMWOiVmkg/exec", {
