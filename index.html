@@ -611,6 +611,13 @@
       const winner = sorted[0];
       el.announcement.textContent = `🎉 Game Over! ${winner.name} wins with a score of ${winner.total}!`;
       saveHistory(winner);
+      function endGame() {
+ 
+  showWinnerModal(sortedPlayers[0].name);
+
+  // 2. Insert the call here
+  syncGameToHellcastle("Golf Darts", summaryText);
+}
     }
 
     function saveHistory(winner) {
@@ -642,6 +649,23 @@
     }
 
     init();
+    function syncGameToHellcastle(gameName, resultSummary) {
+  const payload = {
+    date: new Date().toISOString().split('T')[0],
+    game: gameName,
+    summary: resultSummary
+  };
+
+  fetch("https://script.google.com/macros/s/AKfycbwGPOZhC-PRsuwt-wZ70QRxnZLExtnVROtRpJx8jLqniyM79DxMVFsFkKqVHHMWOiVmkg/exec", {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify(payload)
+  })
+  .then(() => console.log("Sent payload to Hellcastle:", payload))
+  .catch(err => console.warn("Hellcastle sync network error:", err));
+}
+
   </script>
 </body>
 </html>
