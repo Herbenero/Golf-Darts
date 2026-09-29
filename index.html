@@ -493,30 +493,25 @@
     }
 
     function recordThrow(shotType) {
-      if (state.gameOver || state.currentDart > 3) return;
-      pushStateToHistory();
-      
-      const activeScoring = BOARD_SCORING[state.boardType];
-      const score = activeScoring[shotType];
+  if (state.gameOver || state.currentDart > 3) return;
 
-      state.dartsThisTurn.push({ shotType, score });
-      state.currentDart++;
-      updateDisplay();
-      if (state.currentDart > 3) {
-        endTurn();
-      }
-    }
+  // Enforce 3rd dart requirement for Bull on Quad board
+  if (state.boardType === "quad" && shotType === "bull" && state.currentDart !== 3) {
+    el.announcement.textContent = "Bull is only allowed on the 3rd dart!";
+    return;
+  }
 
-    function pushStateToHistory() {
-      state.historyStack.push(JSON.stringify({
-        players: state.players,
-        currentPlayer: state.currentPlayer,
-        currentHole: state.currentHole,
-        currentDart: state.currentDart,
-        dartsThisTurn: state.dartsThisTurn,
-        gameOver: state.gameOver
-      }));
-    }
+  pushStateToHistory();
+  const activeScoring = BOARD_SCORING[state.boardType];
+  const score = activeScoring[shotType];
+  state.dartsThisTurn.push({ shotType, score });
+  state.currentDart++;
+  updateDisplay();
+
+  if (state.currentDart > 3) {
+    endTurn();
+  }
+}
 
     function endTurn() {
       if (state.dartsThisTurn.length === 0) {
@@ -564,16 +559,26 @@
     }
 
     function updateDisplay() {
-      if (state.gameOver) return;
-      const p = state.players[state.currentPlayer];
-      el.currentPlayerLabel.textContent = p.name;
-      el.modeLabel.textContent = `${state.totalHoles} Holes (${state.boardType.toUpperCase()})`;
-      el.holeLabel.textContent = state.currentHole;
-      el.dartLabel.textContent = `${Math.min(state.currentDart, 3)} / 3`;
-      el.dart1View.textContent = state.dartsThisTurn[0] ? state.dartsThisTurn[0].score : "—";
-      el.dart2View.textContent = state.dartsThisTurn[1] ? state.dartsThisTurn[1].score : "—";
-      el.dart3View.textContent = state.dartsThisTurn[2] ? state.dartsThisTurn[2].score : "—";
-    }
+  if (state.gameOver) return;
+  const p = state.players[state.currentPlayer];
+  el.currentPlayerLabel.textContent = p.name;
+  el.modeLabel.textContent = `${state.totalHoles} Holes (${state.boardType.toUpperCase()})`;
+  el.holeLabel.textContent = state.currentHole;
+  el.dartLabel.textContent = `${Math.min(state.currentDart, 3)} / 3`;
+  el.dart1View.textContent = state.dartsThisTurn[0] ? state.dartsThisTurn[0].score : "—";
+  el.dart2View.textContent = state.dartsThisTurn[1] ? state.dartsThisTurn[1].score : "—";
+  el.dart3View.textContent = state.dartsThisTurn[2] ? state.dartsThisTurn[2].score : "—";
+
+  // Disable Bull button unless on Quad board and on 3rd Dart
+  const bullBtn = document.querySelector('[data-shot="bull"]');
+  if (bullBtn) {
+    const isQuad = state.boardType === "quad";
+    const isThirdDart = state.currentDart === 3;
+    bullBtn.disabled = isQuad && !isThirdDart;
+    bullBtn.style.opacity = (isQuad && !isThirdDart) ? "0.4" : "1";
+    bullBtn.style.cursor = (isQuad && !isThirdDart) ? "not-allowed" : "pointer";
+  }
+}
 
     function renderScorecard() {
       let headHtml = `<th class="hole-col">Hole</th>`;
