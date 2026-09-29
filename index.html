@@ -540,6 +540,21 @@
       updateDisplay();
       renderScorecard();
     }
+    function pushStateToHistory() {
+  if (!state.historyStack) {
+    state.historyStack = [];
+  }
+  // Save a snapshot of current turn/game state for the Undo feature
+  const snapshot = {
+    players: JSON.parse(JSON.stringify(state.players)),
+    currentPlayer: state.currentPlayer,
+    currentHole: state.currentHole,
+    currentDart: state.currentDart,
+    dartsThisTurn: JSON.parse(JSON.stringify(state.dartsThisTurn)),
+    gameOver: state.gameOver
+  };
+  state.historyStack.push(JSON.stringify(snapshot));
+}
 
     function undoLast() {
       if (!state.historyStack || state.historyStack.length === 0) {
