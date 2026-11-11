@@ -432,6 +432,36 @@ button:active {
 .score-6 { color: #38bdf8; }
 .score-7 { color: #f3f4f6; }
 .score-8 { color: #f87171; }
+
+/* Custom Styling for Checkbox Row */
+.randomize-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--bg-card-border);
+}
+.randomize-field input[type="checkbox"] {
+  appearance: auto;
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent-green);
+  cursor: pointer;
+  margin: 0;
+}
+.randomize-field label {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: normal;
+  cursor: pointer;
+  margin-bottom: 0;
+}
+
 @media (max-width: 1024px) {
   .game-layout, .setup-layout { grid-template-columns: 1fr; }
   .meta-strip { grid-template-columns: repeat(2, 1fr); }
@@ -481,10 +511,10 @@ button:active {
           </div>
         </div>
 
-        <!-- Randomize Player Order Checkbox -->
-        <div style="display: flex; align-items: center; gap: 10px; margin-top: 16px; background: rgba(0,0,0,0.2); padding: 12px 16px; border-radius: var(--radius-md); border: 1px solid var(--bg-card-border);">
-          <input type="checkbox" id="randomizePlayers" style="width: 20px; height: 20px; accent-color: var(--accent-green); cursor: pointer;" />
-          <label for="randomizePlayers" style="color: var(--text-muted); font-size: 0.9rem; font-weight: 600; text-transform: none; letter-spacing: normal; cursor: pointer; margin-bottom: 0;">Randomize player play order on start</label>
+        <!-- Randomize Player Order Checkbox Container -->
+        <div class="randomize-field">
+          <input type="checkbox" id="randomizePlayers" />
+          <label for="randomizePlayers">Randomize player play order on start</label>
         </div>
 
         <div style="display:flex; gap:12px; margin-top:24px;">
@@ -601,7 +631,6 @@ button:active {
 <script>
 const STORAGE_KEYS = { history: "golf_darts_history_v1" };
 
-// Separate Point Maps per Board Type
 const BOARD_SCORING = {
   basic: { double: 1, triple: 2, inner: 3, outer: 4, miss: 5 },
   quad:  { double: 1, bull: 2, triple: 3, quad: 4, outer: 5, middle: 6, inner: 7, miss: 8 }
@@ -675,7 +704,7 @@ function addPlayerField(value = "") {
     <button class="remove-player" type="button">×</button>
   `;
   row.querySelector(".remove-player").addEventListener("click", () => {
-    if (el.playerList.querySelectorAll(".player-row").length <=  1) return;
+    if (el.playerList.querySelectorAll(".player-row").length <= 1) return;
     row.remove();
     refreshPlayerLabels();
   });
@@ -890,14 +919,12 @@ function renderScorecard() {
     bodyHtml += `</tr>`;
   }
 
-  // Render Total Row
   bodyHtml += `<tr class="total-row"><td class="hole-col">TOTAL</td>`;
   state.players.forEach(p => {
     bodyHtml += `<td>${p.total}</td>`;
   });
   bodyHtml += `</tr>`;
 
-  // Render Hole-in-1 (ACE) Count Row
   bodyHtml += `<tr class="hio-row"><td class="hole-col">ACE (1s)</td>`;
   state.players.forEach(p => {
     const hioCount = p.scores.filter(s => s === 1).length;
@@ -913,7 +940,7 @@ function announceWinner() {
   const winner = sorted[0];
   let msg = `🏆 Match Finished! Winner: ${winner.name} with ${winner.total} points!`;
   el.announcement.textContent = msg;
-  saveHistory();
+    saveHistory();
 }
 
 function resetToSetup() {
@@ -929,7 +956,7 @@ function saveHistory() {
     date: el.matchDate.value || new Date().toISOString().slice(0, 10),
     boardType: state.boardType,
     totalHoles: state.totalHoles,
-    players: state.players.map(p => ({
+    players: state.players.name ? [] : state.players.map(p => ({
       name: p.name,
       total: p.total,
       hios: p.scores.filter(s => s === 1).length
@@ -952,7 +979,7 @@ function renderHistory() {
         <span>${item.totalHoles}H (${item.boardType.toUpperCase()})</span>
       </div>
       <div style="font-weight:600;">
-        ${item.players.map(p => `${p.name}: ${p.total} pts (${p.hios ?? 0} 🎯)`).join(" | ")}
+        ${(item.players || []).map(p => `${p.name}: ${p.total} pts (${p.hios ?? 0} 🎯)`).join(" | ")}
       </div>
     </div>
   `).join("");
