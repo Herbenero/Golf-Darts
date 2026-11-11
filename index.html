@@ -446,11 +446,13 @@ button:active {
 }
 .randomize-field input[type="checkbox"] {
   appearance: auto;
+  -webkit-appearance: checkbox;
   width: 20px;
   height: 20px;
   accent-color: var(--accent-green);
   cursor: pointer;
   margin: 0;
+  display: inline-block;
 }
 .randomize-field label {
   color: var(--text-muted);
@@ -940,7 +942,7 @@ function announceWinner() {
   const winner = sorted[0];
   let msg = `🏆 Match Finished! Winner: ${winner.name} with ${winner.total} points!`;
   el.announcement.textContent = msg;
-    saveHistory();
+  saveHistory();
 }
 
 function resetToSetup() {
@@ -956,7 +958,7 @@ function saveHistory() {
     date: el.matchDate.value || new Date().toISOString().slice(0, 10),
     boardType: state.boardType,
     totalHoles: state.totalHoles,
-    players: state.players.name ? [] : state.players.map(p => ({
+    players: state.players.map(p => ({
       name: p.name,
       total: p.total,
       hios: p.scores.filter(s => s === 1).length
